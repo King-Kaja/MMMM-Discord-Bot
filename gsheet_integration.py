@@ -5,9 +5,7 @@ import os
 
 load_dotenv()
 
-gc = pygsheets.authorize(
-    client_secret=os.getenv("GOOGLE_SHEET_SECRET_KEY")
-)
+gc = pygsheets.authorize(client_secret=os.getenv("GOOGLE_SHEET_SECRET_KEY"))
 
 # Open spreadsheet and then worksheet
 sh = gc.open_by_url(
@@ -18,37 +16,72 @@ transSh = sh[1]
 finanSh = sh[2]
 
 
-def test():
-    print(idSh.find("allya2643")[0].row)
-
-
-# intializes account
 def nameInit(user):
+    """
+    User is intialized into MMMM spreadsheet table
 
+    Parameters
+    ----------
+    user : discord.Member
+        The user
+    """
     # initializes id List
     idSh.append_table([str(user.id)])
     index = idSh.find(str(user.id))[0].row
 
+    # initalizes table with zero values
     zero_row = [0] * index
     finanSh.update_row(index, zero_row)
     finanSh.update_col(index, zero_row)
+    # adds user's name to the table
     finanSh.update_value((1, index), user.name)
     finanSh.update_value((index, 1), user.name)
 
 
-# checks if id is in accounts
 def checkInit(id):
+    """
+    Checks if user's ID number has already been initialized
+
+    Parameters
+    ----------
+    id : str
+        The user's id number
+
+    Returns
+    -------
+    bool
+        returns true if id is not intialized.
+    """
     return idSh.find(id) == []
 
 
 def transaction(lender, lendee, amount, description):
+    """
+    User is intialized into MMMM spreadsheet table
+
+    Parameters
+    ----------
+    lender : discord.Member
+        The user transfering the funds
+
+    lendee: discord.Member
+        The user that is being transferred the funds
+
+    amount: float
+        amount being transferred
+
+    description: str
+        optional description for purpose of transfer
+    """
     lenderID = str(lender.id)
     lendeeID = str(lendee.id)
     lenderIndex = idSh.find(lenderID)[0].row
     lendeeIndex = idSh.find(lendeeID)[0].row
 
+    # adds transaction to transaction log
     transSh.append_table([lenderID, lendeeID, amount, description])
 
+    # updates values on table
     finanSh.update_value(
         (lenderIndex, lendeeIndex),
         float(finanSh.cell((lenderIndex, lendeeIndex)).value) + -1 * amount,
@@ -60,14 +93,29 @@ def transaction(lender, lendee, amount, description):
 
 
 def loanTable(member):
+    """
+    Returns a table with the net loan of a user
+
+    Parameters
+    ----------
+    member : discord.Member
+        The user
+
+    Returns
+    -------
+    embed : discord.Ember
+        returns embed with table of data
+    """
     embed = discord.Embed(title="Net Loan")
 
     memberID = str(member.id)
     memberIndex = idSh.find(memberID)[0].row
 
+    # removes the user's name from the entries
     nameList = finanSh.get_row(1, include_tailing_empty=False)[1:]
     valueList = finanSh.get_row(memberIndex, include_tailing_empty=False)[1:]
 
+    # removes the user's loan to their self
     del nameList[memberIndex - 2]
     del valueList[memberIndex - 2]
 
