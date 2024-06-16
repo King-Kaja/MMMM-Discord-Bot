@@ -27,21 +27,21 @@ async def nameInit(interaction: discord.Interaction, member: discord.Member):
         The user
     """
     await interaction.response.defer()
-    # checks if cmember is already in list before adding
+    # checks if member is already in list before adding
     if gs.checkInit(str(member.id)):
         gs.nameInit(member)
     else:
         await interaction.followup.send(
-            f"{member.display_name} is already in the MMMMM group"
+            f"{member.mention} is already in the MMMMM group"
         )
 
     await interaction.followup.send(
-        f"{member.display_name} has been added into the MMMMM group."
+        f"{member.mention} has been added into the MMMMM group."
     )
 
 
 @tree.command(name="fund-transfer", description="transfers funds to user")
-async def fundTransferSplit(
+async def fundTransfer(
     interaction: discord.Interaction,
     member: discord.Member,
     amount: float,
@@ -62,20 +62,35 @@ async def fundTransferSplit(
         Optional description for reason for transfer
     """
     await interaction.response.defer()
-    # rmbr to add code to check for nonnumeral
-    gs.transaction(interaction.user, member, amount, description)
-    await interaction.followup.send(
-        f"name: {member.name} display name: {member.display_name}"
+
+    # checks if member has already been intialized
+    if gs.checkInit(str(interaction.user.id)):
+        await interaction.followup.send(
+            f"{interaction.mention} needs to be initialized into the MMMMM group"
+        )
+    elif gs.checkInit(str(member.id)):
+        await interaction.followup.send(
+            f"{member.mention} needs to be initialized into the MMMMM group"
+        )
+    # checks if amount is valid
+    elif((amount*100)%1 != 0):
+        await interaction.followup.send(
+        f"{amount} is not valid. Amount must have at most 2 digits after the decimal point."
     )
+    elif(amount <= 0):
+        await interaction.followup.send(
+        f"{amount:.2f} is not valid. Amount must be greater than zero"
+    )
+    else:
+        gs.transaction(interaction.user, member, amount, description)
+        await interaction.followup.send(
+            f"{interaction.user.mention} has transferred {amount} to {member.mention}"
+        )
 
-
-@tree.command(
-    name="fund-transfer-split",
-    description="splits funds and transfers to multiple users",
-)
+@tree.command(name="fund-transfer-split", description="splits funds and transfers them to user")
 async def fundTransferSplit(
     interaction: discord.Interaction,
-    member: discord.Member,
+    members: str,
     amount: float,
     description: str = "",
 ):
@@ -94,12 +109,42 @@ async def fundTransferSplit(
         Optional description for reason for transfer
     """
     await interaction.response.defer()
-    # rmbr to add code to check for nonnumeral
-    gs.transaction(interaction.user, member, amount, description)
-    await interaction.followup.send(
-        f"name: {member.name} display name: {member.display_name}"
+    
+    # checks if member has already been intialized
+    if gs.checkInit(str(interaction.user.id)):
+        await interaction.followup.send(
+            f"{interaction.mention} needs to be initialized into the MMMMM group"
+        )
+    # checks if amount is valid
+    elif((amount*100)%1 != 0):
+        await interaction.followup.send(
+        f"{amount} is not valid. Amount must have at most 2 digits after the decimal point."
     )
-
+    elif(amount <= 0):
+        await interaction.followup.send(
+        f"{amount:.2f} is not valid. Amount must be greater than zero"
+    )
+    else:
+        valid = True
+        memberList = members.split(" ")
+        amount = round(amount/len(memberList),2)
+        for member in memberList:
+            member_id = int(member.strip('<@!>'))
+            if gs.checkInit(str(member_id)):
+                await interaction.followup.send(
+                    f"{interaction.mention} needs to be initialized into the MMMMM group"
+                )
+                valid = False
+                break
+        if(valid):
+            for member in memberList:
+                member_id = int(member.strip('<@!>'))
+                member = await client.fetch_user(member_id)
+                gs.transaction(interaction.user, member, amount, description)
+            await interaction.followup.send(
+                f"{interaction.user.mention} has transferred {amount} to {memberList}"
+            )
+        
 
 @tree.command(name="net-loan", description="net loan of a user")
 async def netLoan(interaction: discord.Interaction, member: discord.Member):
